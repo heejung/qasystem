@@ -33,12 +33,16 @@ def tagger(infile, outfile):
     text_list = btwn_text_p.findall(doc)
     docs = {}
     docn = None
+    count = 0
     for tup in text_list:
         if "<DOCNO>" in tup[0]:
             docn = tup[1].strip()
+            count += 1
+            print docn
             docs[docn] = ""
         else:
             docs[docn] = docs[docn] + tup[2]
+    print count
 
     # output the file
     tagged_output = ""
@@ -66,7 +70,10 @@ def tag_dir(indirpath, outdirpath):
     """
     infiles = dircache.listdir(indirpath)
     for infile in infiles:
+        infile = "top_docs.267.gz"
         if ".gz" in infile:
+            print infile
             tagger(indirpath + infile, outdirpath + infile + ".pos")
+            break
 
 tag_dir("/Users/jollifun/Downloads/train/docs/", "/Users/jollifun/NLP/pro4/posdocs2/")
