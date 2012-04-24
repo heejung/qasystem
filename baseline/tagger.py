@@ -60,7 +60,6 @@ def tagger(infile, outfile):
 
     # output the file
     
-
 def tag_dir(indirpath, outdirpath):
     """
     POS tags all the gzip files in indirpath directory and
@@ -78,4 +77,4 @@ def tag_dir(indirpath, outdirpath):
         if ".gz" in infile:
             tagger(indirpath + infile, outdirpath + infile + ".pos")
 
-tag_dir("/Users/jollifun/Downloads/train/docs/", "/Users/jollifun/NLP/pro4/posdocs2/")
+#tag_dir("/Users/jollifun/Downloads/train/docs/", "/Users/jollifun/NLP/pro4/posdocs2/")
