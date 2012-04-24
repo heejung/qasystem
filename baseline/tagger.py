@@ -3,8 +3,6 @@ import re
 import gzip
 import dircache
 
-PRONOUN = "NNP"
-
 def get_gzip_data(filename):
     """Read daa from gzip file.
 
@@ -32,31 +30,31 @@ def tagger(infile, outfile):
     strip_html_p = re.compile(r'<.*?>')
     btwn_text_p = re.compile('(<DOCNO>(.*?)</DOCNO>|<TEXT>((.|\n)*?)</TEXT>)')
 
-    #doc_stripped = strip_html_p.sub('', doc)
     text_list = btwn_text_p.findall(doc)
     docs = {}
     docn = None
+    count = 0
     for tup in text_list:
         if "<DOCNO>" in tup[0]:
             docn = tup[1].strip()
+            count += 1
+            print docn
             docs[docn] = ""
         else:
             docs[docn] = docs[docn] + tup[2]
+    print count
 
-    #texts_stripped = ' '.join("%s" % tup[0] for tup in text_list)
-
+    # output the file
     tagged_output = ""
     for (docn,text) in docs.items():
         docs[docn] = strip_html_p.sub('', text)
         tokens = nltk.word_tokenize(docs[docn])
-        tagged_output = "<DOCNO> " + docn + "\n"
+        tagged_output = tagged_output + "<DOCNO> " + docn + "\n"
         tagged_text = nltk.pos_tag(tokens)
         output = "\n".join("%s %s" % tup for tup in tagged_text)
         tagged_output = tagged_output + output + "\n\n"
         
     open(outfile, 'w').write(tagged_output)
-
-    # output the file
     
 def tag_dir(indirpath, outdirpath):
     """
@@ -72,7 +70,10 @@ def tag_dir(indirpath, outdirpath):
     """
     infiles = dircache.listdir(indirpath)
     for infile in infiles:
+        infile = "top_docs.267.gz"
         if ".gz" in infile:
+            print infile
             tagger(indirpath + infile, outdirpath + infile + ".pos")
+            break
 
-#tag_dir("/Users/jollifun/Downloads/train/docs/", "/Users/jollifun/NLP/pro4/posdocs2/")
+tag_dir("/Users/jollifun/Downloads/train/docs/", "/Users/jollifun/NLP/pro4/posdocs2/")
