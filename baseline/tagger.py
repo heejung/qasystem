@@ -28,7 +28,7 @@ def tagger(infile, outfile):
     # input the file
     doc = get_gzip_data(infile) 
     strip_html_p = re.compile(r'<.*?>')
-    btwn_text_p = re.compile('(<DOCNO>(.*?)</DOCNO>|<TEXT>((.|\n)*?)</TEXT>)')
+    btwn_text_p = re.compile('(<DOCNO>((.|\n)*?)</DOCNO>|<TEXT>((.|\n)*?)</TEXT>)')
 
     text_list = btwn_text_p.findall(doc)
     docs = {}
@@ -38,17 +38,20 @@ def tagger(infile, outfile):
             docn = tup[1].strip()
             docs[docn] = ""
         else:
-            docs[docn] = docs[docn] + tup[2]
+            docs[docn] = docs[docn] + tup[3]
 
     # output the file
     tagged_output = ""
     for (docn,text) in docs.items():
         docs[docn] = strip_html_p.sub('', text)
-        tokens = nltk.word_tokenize(docs[docn])
         tagged_output = tagged_output + "<DOCNO> " + docn + "\n"
-        tagged_text = nltk.pos_tag(tokens)
-        output = "\n".join("%s %s" % tup for tup in tagged_text)
-        tagged_output = tagged_output + output + "\n\n"
+        sentences = nltk.sent_tokenize(docs[docn])
+        for sent in sentences:
+            tokens = nltk.word_tokenize(sent)
+            tagged_text = nltk.pos_tag(tokens)
+            output = "\n".join("%s %s" % tup for tup in tagged_text)
+            tagged_output = tagged_output + output + "\n"
+        tagged_output = tagged_output + "\n"
         
     open(outfile, 'w').write(tagged_output)
     

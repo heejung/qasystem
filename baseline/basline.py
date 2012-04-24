@@ -43,4 +43,4 @@ def answer(real_qn, posfile, candidates):
             candidates[ans] = 1
     return candidates
 
-run("/Users/jollifun/NLP/pro4/posdocs2/", "/Users/jollifun/NLP/pro4/myanswers.txt", 5, 10)
+run("/Users/jollifun/NLP/pro4/posdocs2/", "/Users/jollifun/NLP/pro4/myanswers.txt", 5, 18)
