@@ -12,7 +12,13 @@ def top_NNPs(n, qn, indir, posfiles, real_qn):
     candidates = answer(real_qn, indir + posfiles[qn], candidates)
 
     answers = heapq.nlargest(n, candidates, key=candidates.get)
-    return "\n".join(answers) #add to take care of NIL
+
+    output = ""
+    str_qn = str(real_qn)
+    for ans in answers:
+        (freq, docids) = candidates[ans]
+        output = output + str_qn + " " + docids.iterkeys().next() + " " + ans + "\n"
+    return output #add to take care of NIL
     
 def output(outfile, ans):
     open(outfile, 'w').write(ans)
@@ -21,7 +27,7 @@ def run(indir, outfile, n, qmax):
     posfiles = posdocs(indir)
     ans = ""
     for qn in xrange(0,qmax):
-        ans = ans + top_NNPs(n, qn, indir, posfiles, qn+201) + "\n\n"
+        ans = ans + top_NNPs(n, qn, indir, posfiles, qn+201) + "\n"
     output(outfile, ans)
 
 def answer(real_qn, posfile, candidates):
@@ -34,13 +40,14 @@ def answer(real_qn, posfile, candidates):
             docid = tup[1].strip()
             continue
         nnp = tup[2].strip()
-        if nnp=="":
+        if nnp=="" or not re.match("^[A-Za-z0-9-]*$", nnp):
             continue
-        ans = str(real_qn) + " " + docid + " " + nnp
-        if candidates.has_key(ans):
-            candidates[ans] += 1
+        if candidates.has_key(nnp):
+            (freq, docids) = candidates[nnp]
+            docids[docid] = 1
+            candidates[nnp] = (freq+1, docids)
         else:
-            candidates[ans] = 1
+            candidates[nnp] = (1, {docid:1})
     return candidates
 
-run("/Users/jollifun/NLP/pro4/posdocs2/", "/Users/jollifun/NLP/pro4/myanswers.txt", 5, 18)
+run("/Users/jollifun/NLP/pro4/posdocs2/", "/Users/jollifun/NLP/pro4/myanswers.txt", 5, 74)
