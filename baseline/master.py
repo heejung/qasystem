@@ -1,6 +1,11 @@
 import dircache
 from decision import best_guess
 from preprocess import tag_file_by_name, tag_file_by_num
+from categorize import CategorizeQs
+
+# qa = CategorizeQs()
+# dic = qa.get_qtypes("questions.txt")
+# dic["question number"] will now return ('question', 'question type')
 
 def run_files_in_range(start, stop, outfile, n):
     """

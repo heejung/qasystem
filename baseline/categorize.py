@@ -76,8 +76,8 @@ class CategorizeQs:
 
         print qstat_str
 
-if __name__ == "__main__":
-    qatree = CategorizeQs()
-    qatree.stats("/Users/jollifun/Downloads/train/questions.txt")
+#if __name__ == "__main__":
+#    qatree = CategorizeQs()
+#    qatree.stats("/Users/jollifun/Downloads/train/questions.txt")
 
         
