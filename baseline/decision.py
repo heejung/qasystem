@@ -1,5 +1,4 @@
-import re
-import heapq
+from baseline import top_NNPs
 
 def best_guess(n, posfile, qn, question):
     """
@@ -15,56 +14,43 @@ def best_guess(n, posfile, qn, question):
 
     Note: the question input is not supported at this time 
     """
-    return top_NNPs(n, posfile, qn)
+    # weights is the ordered record of how individual algorithms fare.
+    # This value must have length that corresponds to number of algos used.
+    weights = [1, .5]
 
-def top_NNPs(n, posfile, qn):
-    """
-    returns the n most frequently occuring proper nouns found in
-    the training corpus.
+    # representation of the output of each used algorithm
+    algos = []
 
-    params
-    ----
-    n = number of responses
-    posfile = formatted POS file of training corpus
-    qn = absolute question number being answered
-    """
-    candidates = {}
-    candidates = answer(posfile, candidates)
+    # when adding a new algorithm, add a step exactly as below,
+    # in the same position as the corresponding weight in weights above
+    algos += [top_NNPs(n, posfile, qn)]
+    algos += [[(.5, "_"), (.9, "_"), (1.3, "_"), (1.7, "_"), (2.1,"this should appear\n")]]
 
-    answers = heapq.nlargest(n, candidates, key=candidates.get)
+    # reconfigures confidences based on weights for each algo
+    for i in range(0, len(algos)):
+        for j in range(0, len(algos[i])):
+            algos[i][j] = (algos[i][j][0]*weights[i], algos[i][j][1])
 
-    output = ""
-    str_qn = str(qn)
-    for ans in answers:
-        (freq, docids) = candidates[ans]
-        output = output + str_qn + " " + docids.iterkeys().next() + " " + ans + "\n"
-    return output #add to take care of NIL
+    # adds all (confidence, string) pairs into one list, sorts based on confidence
+    # with the highest confidence appearing first
+    tups = []
+    for algo in algos:
+        for tup in algo:
+            tups += [tup]
+    tups.sort(key=lambda tup: tup[0])
+    tups.reverse()
 
-def answer(posfile, candidates):
-    """
-    generates a dictionary of proper nouns found in the
-    corpus where dict{NNP} -> count of that NNP in corpus
-
-    params
-    ----
-    posfile = formatted data file
-    candidates = dictionary at time of input
-    """
-    text = open(posfile, 'r').read()
-    p_nnp = re.compile('(<DOCNO>(.*?)\n|(.*?)(?=NNP))')
-    nnps = p_nnp.findall(text)
-    docid = ""
-    for tup in nnps:
-        if "<DOCNO>" in tup[0]:
-            docid = tup[1].strip()
-            continue
-        nnp = tup[2].strip()
-        if nnp=="" or not re.match("^[A-Za-z0-9-]*$", nnp):
-            continue
-        if candidates.has_key(nnp):
-            (freq, docids) = candidates[nnp]
-            docids[docid] = 1
-            candidates[nnp] = (freq+1, docids)
-        else:
-            candidates[nnp] = (1, {docid:1})
-    return candidates
+    # populates returns with the up to the first 5 unique strings featured in tups,
+    # returning nil if returns is empty
+    returns = []
+    i = 0
+    while i < len(tups) and len(returns) < 5:
+        if tups[i][1] not in returns:
+            returns += [tups[i][1].strip()]
+        i += 1
+    if returns == []:
+        return 'nil'
+    else:
+        return '\n'.join(returns)
+                
+    

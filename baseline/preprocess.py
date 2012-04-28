@@ -112,7 +112,7 @@ def tag_file_by_name(filename, outfile):
     pp = dircache.listdir(pp_path)
     for pp_file in pp:
         if str(file_num) in pp_file:
-            return (pp_file, file_num)
+            return (pp_path+pp_file, file_num)
 
     preprocess(gzip_path + filename, outfile)
     return (outfile, file_num)
