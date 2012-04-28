@@ -69,4 +69,4 @@ def output(outfile, ans):
     """
     open(outfile, 'w').write(ans)
 
-run_dir("train/temp/", "train/docs_proc/", "train/results/test.txt", 5)
+run_dir("train/docs/", "train/docs_proc/", "train/results/test.txt", 5)
