@@ -30,8 +30,7 @@ class CategorizeQs:
 
     """
         Extracts question numbers and questions from qfile, and 
-        categorizes each question into 6 different question types,
-        then calls the appropirate functions to answer each question
+        categorizes each question into 6 different question types. 
 
         params
         ----
@@ -42,12 +41,22 @@ class CategorizeQs:
                  "question"
                  ...
 
+       returns a dictionary of
+           key: question number string
+           value: (question string, question type string)
     """
-    def run_catqs(self, qfile):
+    def get_qtypes(self, qfile):
         questions = self.read_qfile(qfile)
         for (qnum,q) in questions.items():
-            print self.categorize_q(q)
+            qtype = self.categorize_q(q)
+            questions[qnum] = (q, qtype)
+        return questions
 
+    """
+        Analyzes the questions in the qfile and
+        generates statistics as to how much percentage of the questions
+        belongs to which question type.
+    """
     def stats(self, qfile):
         questions = self.read_qfile(qfile)
         qstats = {}
