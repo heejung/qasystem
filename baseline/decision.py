@@ -10,7 +10,7 @@ def best_guess(n, posfile, qn, question):
     n = number of guesses to be returned
     posfile = formatted POS file in which data will be found
     qn = question number that is being answered
-    question = the string representing the question being asked.
+    question = tuple of:  (string representing the question being asked, question type)
 
     Note: the question input is not supported at this time 
     """
