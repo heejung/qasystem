@@ -1,6 +1,13 @@
 import dircache
 from decision import best_guess
 from preprocess import tag_file_by_name, tag_file_by_num
+from categorize import CategorizeQs
+
+# qa = CategorizeQs()
+# dic = qa.get_qtypes("questions.txt")
+# dic["question number"] will now return ('question', 'question type')
+
+questions_dir = "questions.txt"
 
 def run_files_in_range(start, stop, outfile, n):
     """
@@ -17,12 +24,14 @@ def run_files_in_range(start, stop, outfile, n):
     outfile = path to the file that results will be written to
     n = number of top guesses per question
     """
+    qa = CategorizeQs()
+    dic = qa.get_qtypes(questions_dir)
     ans = ""
     for i in range(start, stop+1):
-        ans += run_file(i, n) + "\n\n"
+        ans += run_file(i, n, dic) + "\n\n"
     output(outfile, ans)
 
-def run_file(file_num, n):
+def run_file(file_num, n, qa):
     """
     takes a single question number and performs question-answering on that
     question
@@ -32,9 +41,10 @@ def run_file(file_num, n):
     file_num = number of question being answered
     outfile = filepath for the results of QA
     n = number of answers desired
+    qa = question type mapping
     """
     posfile = tag_file_by_num(file_num, "top_docs."+str(file_num)+".pos")
-    ans = best_guess(n, posfile, file_num, None)
+    ans = best_guess(n, posfile, file_num, qa[str(file_num)])
     return ans
 
 def run_dir(indirpath, outdirpath, answerfile, n):
@@ -49,13 +59,15 @@ def run_dir(indirpath, outdirpath, answerfile, n):
     answerfile = file path that results of QA should be output to
     n = number of answers desired per question
     """
+    qa = CategorizeQs()
+    dic = qa.get_qtypes(questions_dir)
     infiles = dircache.listdir(indirpath)
     ans = ""
     for infile in infiles:
         if ".gz" in infile:
             outpath = outdirpath+infile+".pos"
             (posfile, qn) = tag_file_by_name(infile, outpath)
-            ans += best_guess(n, posfile, qn, None) + "\n\n"
+            ans += best_guess(n, posfile, qn, dic[str(qn)]) + "\n\n"
     output(answerfile, ans)
 
 def output(outfile, ans):
