@@ -6,13 +6,38 @@ import re
 class CategorizeQs:
 
     def __init__(self):
-        self.categories = {"what":1, "who":2, "where":3, "when":4, "how":5, "misc":6}
+        self.categories = {"what":1, "who":2, "where":3, "when":4, "how":5, "misc":6,
+                           "how much":7, "is/was":8, "are/were":9, "population":10,
+                           "do/does/did":11, "name":12, "why":13}
 
     def categorize_q(self, question):
         words = re.compile("\W").split(question.lower())
         firstword = words[0]
         if self.categories.has_key(firstword):
+            if firstword == "how" and (words[1] in ["much", "many"] or words[1][-2:] == "ly"):
+                return "how much"
+            if firstword == "what":
+                if "population" in words:
+                    return "population"
+                if len(set(words[1:4]).intersection(set(["is", "was", "s"]))) > 0:
+                    return "is/was"
+                if len(set(words[1:4]).intersection(set(["are", "were", "re"]))) > 0:
+                    return "are/were"
+                if len(set(words[1:4]).intersection(set(["do", "does", "did", "d"]))) > 0:
+                    return "do/does/did"
             return firstword
+        for i in range(0, len(words)-1):
+            if words[i] == "how":
+                if words[i+1] in ["much", "many"] or words[i+1][-2:] == "ly":
+                    return "how much"
+                return "how"
+        if "what" in words:
+            if words[-2] == "what":
+                if len(set(words).intersection(set(["is", "was", "s"]))) > 0:
+                    return "is/was"
+                if len(set(words).intersection(set(["are", "were", "re"]))) > 0:
+                    return "are/were"
+            return "what"
         return "misc"
 
     def read_qfile(self, qfile):
@@ -76,8 +101,8 @@ class CategorizeQs:
 
         print qstat_str
 
-#if __name__ == "__main__":
-#    qatree = CategorizeQs()
-#    qatree.stats("/Users/jollifun/Downloads/train/questions.txt")
+if __name__ == "__main__":
+    qatree = CategorizeQs()
+    qatree.stats("questions.txt")
 
         
