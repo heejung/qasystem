@@ -3,8 +3,9 @@ from nltk import stem, corpus, sent_tokenize, word_tokenize
 import preprocess, utils
 
 """
-Class NamedEntAlog
-    Uses named entities to retrieve the answer candidates to the
+Class CollocationAlgo 
+    Uses named entities, POS tags, and basic collocation method
+    in order to retrieve the answer candidates to the
     given question. Ranks the answer candidates by computing
     their confidence scores. The confidence scores are computed
     by counting the number of words that match the words in the given
@@ -12,7 +13,7 @@ Class NamedEntAlog
     before and after the answer candidate in the corpus where the
     answer candidate is found.
 """
-class CollocNamedEntAlgo:
+class CollocationAlgo:
     def __init__(self):
         """
         windowSize: the window size for collocation consideration
@@ -44,7 +45,6 @@ class CollocNamedEntAlgo:
         top_n_cands = self.get_colloc_words(dfile, n, qdict)
         top_n_anses = self.shrink_answer_size(top_n_cands, qdict, self.answerSize)
         return top_n_anses
-        
 
     def run_ne(self, question, ne_type, nefile, n):
         """
@@ -60,6 +60,65 @@ class CollocNamedEntAlgo:
         """
         ents = self.get_colloc_words_ne(ne_type, nefile, self.windowSize)
         return self.score_ents(ents, question, n)
+
+    def run_pos(self, question, pos, posfile, n):
+        """
+        Uses POS tag information to find the answer to a given question
+        """
+        qtoks = self.preprocess(question)
+        qdict = utils.list2dict(qtoks)
+        return self.get_colloc_words_pos(qdict, pos, posfile, self.windowSize, n)
+
+    def get_colloc_words_pos(self, qdict, pos_type, posfile, nwords, numcands):
+        """
+        Uses POS tags to find the answer to a given question and computes the
+        confidence score using the collocation method.
+        """
+        doc = open(posfile).read()
+        p_nwords = "((?:(?:^|\s)+\S+){0," + str(2*nwords) + "}\s*)"
+        p_docno = "<DOCNO>(.*?)\n"
+        p_colloc = p_nwords + "\n(.*?) " + pos_type + p_nwords
+        m_pos = re.compile("(" + p_docno + "|" + p_colloc +")")
+        results = m_pos.findall(doc)
+        
+        m_strip_tags = re.compile(r'<.*?>')
+        candidates = []
+        anssize = (self.answerSize-1)/2
+        docid = None
+        for r in results:
+            if "<DOCNO>" in r[0]:
+                 docid = r[1].strip()
+            else:
+                prev_words = self.strip_pos(r[2])
+                post_words = self.strip_pos(r[4])
+                colloc_words = prev_words + " " + post_words
+                ans = self.extract_n_words(prev_words, anssize, False) + " " + r[3] + " " + self.extract_n_words(post_words, anssize, True)
+                wtoks = self.preprocess(colloc_words)
+                score = self.score_from_words(wtoks, qdict)
+                tup = (score, docid + " " + ans)
+                size = len(candidates)
+                if size > numcands:
+                    heapq.heappushpop(candidates, tup)
+                else:
+                    heapq.heappush(candidates, tup)
+
+        candidates.reverse()
+        return candidates
+
+    def strip_pos(self, string):
+        """
+        strip the given string of pos tags
+        """
+        wtoks = string.strip().split()
+        return " ".join(wtoks[::2])
+
+    def extract_n_words(self, string, n, from_front):
+        """
+        extract n words from either the front if from_front is true or the back if from_front is false.
+        """
+        wtoks = word_tokenize(string)
+        size = len(wtoks)
+        return " ".join(wtoks[size-n:])
 
     def get_colloc_words(self, datafile, numcands, qdict):
         """
@@ -133,8 +192,8 @@ class CollocNamedEntAlgo:
             if "<DOCNO>" in r[0]:
                  docid = r[1].strip()
             else:
-                colloc_words = r[3] + r[5]
-                ent = r[4]
+                colloc_words = r[2] + " " + r[4]
+                ent = r[3]
                 if not entities.has_key(ent):
                     tup = (docid, m_strip_tags.sub('', colloc_words).strip())
                     entities[ent] = tup
@@ -213,9 +272,12 @@ class CollocNamedEntAlgo:
                 stripped.append(t)
         return stripped
 
-#nea = CollocNamedEntAlgo()
+nea = CollocNamedEntAlgo()
 #cands = nea.run_ne("Where is Belize located?", "LOCATION", "./train/ne_tagged/top_docs.202", 50)
 #print cands
 
 #cands = nea.run_colloc("Where is Belize located?", "/Users/jollifun/Downloads/train/top_docs.202.gz", 5)
 #print cands
+
+cands = nea.run_pos("How much folic acid should an expectant mother get daily?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.203.gz.pos", 10)
+print cands
