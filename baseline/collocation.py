@@ -95,11 +95,13 @@ class CollocationAlgo:
                 if prev == "":
                     m_pos_mini = re.compile(p_nwords1 + "\n" + r[3] + " " + pos_type + self.escape(r[4]))
                     r_mini = m_pos_mini.findall(doc)
-                    prev = r_mini[0].strip()
+                    if len(r_mini) > 0:
+                        prev = r_mini[0].strip()
                 if post == "":
                     m_pos_mini = re.compile(self.escape(r[2]) + "\n" + r[3] + " " + pos_type + p_nwords2)
                     r_mini = m_pos_mini.findall(doc)
-                    post = r_mini[0].strip()
+                    if len(r_mini) > 0:
+                        post = r_mini[0].strip()
 
                 prev_words = self.strip_pos(prev)
                 post_words = self.strip_pos(post)
@@ -224,11 +226,13 @@ class CollocationAlgo:
                 if prev == "":
                     m_ne_mini = re.compile(p_nwords1 + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + self.escape(r[4]))
                     r_mini = m_ne_mini.findall(doc)
-                    prev = r_mini[0].strip()
+                    if len(r_mini) > 0:
+                        prev = r_mini[0].strip()
                 if post == "":
                     m_ne_mini = re.compile(self.escape(r[2]) + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + p_nwords2)
                     r_mini = m_ne_mini.findall(doc)
-                    post = r_mini[0].strip()
+                    if len(r_mini) > 0:
+                        post = r_mini[0].strip()
 
                 colloc_words = prev + " " + post
                 ent = r[3]
