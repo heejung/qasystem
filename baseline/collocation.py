@@ -75,22 +75,34 @@ class CollocationAlgo:
         confidence score using the collocation method.
         """
         doc = open(posfile).read()
-        p_nwords = "((?:(?:^|\s)+\S+){0," + str(2*nwords) + "}\s*)"
-        p_docno = "<DOCNO>(.*?)\n"
-        p_colloc = p_nwords + "\n(.*?) " + pos_type + p_nwords
+        p_nwords1 = "((?:(?:^|\n)+(?!<DOCNO> .+?).+){0," + str(nwords) + "})"
+        p_nwords2 = "(\n*(?:(?!<DOCNO> .+?).+(?:\n+|$)){0," + str(nwords) + "})"
+        p_docno = "<DOCNO> (.+?)\n"
+        p_colloc = p_nwords1 + "\n(.+?) " + pos_type + p_nwords2
         m_pos = re.compile("(" + p_docno + "|" + p_colloc +")")
         results = m_pos.findall(doc)
         
-        m_strip_tags = re.compile(r'<.*?>')
+        m_strip_tags = re.compile(r'<.+?>')
         candidates = []
         anssize = (self.answerSize-1)/2
         docid = None
         for r in results:
-            if ("<DOCNO>" in r[0]) and not(r[1].strip() == ""):
-                 docid = r[1].strip()
+            if "<DOCNO>" in r[0]:
+                docid = r[1].strip()
             else:
-                prev_words = self.strip_pos(r[2])
-                post_words = self.strip_pos(r[4])
+                prev = r[2].strip()
+                post = r[4].strip()
+                if prev == "":
+                    m_pos_mini = re.compile(p_nwords1 + "\n" + r[3] + " " + pos_type + self.escape(r[4]))
+                    r_mini = m_pos_mini.findall(doc)
+                    prev = r_mini[0].strip()
+                if post == "":
+                    m_pos_mini = re.compile(self.escape(r[2]) + "\n" + r[3] + " " + pos_type + p_nwords2)
+                    r_mini = m_pos_mini.findall(doc)
+                    post = r_mini[0].strip()
+
+                prev_words = self.strip_pos(prev)
+                post_words = self.strip_pos(post)
                 colloc_words = prev_words + " " + post_words
                 ans = self.extract_n_words(prev_words, anssize, False) + " " + r[3] + " " + self.extract_n_words(post_words, anssize, True)
                 wtoks = self.preprocess(colloc_words)
@@ -104,6 +116,20 @@ class CollocationAlgo:
 
         candidates.reverse()
         return candidates
+
+    def escape(self, string):
+        toks = string.split('\n')
+        escs = []
+        for t in toks:
+            stoks = t.split(' ')
+            ss = []
+            for s in stoks:
+                if s in [')', '(']:
+                    ss.append(re.escape(s))
+                else:
+                    ss.append(s)
+            escs.append(" ".join(ss))
+        return "\n".join(escs)
 
     def strip_pos(self, string):
         """
@@ -137,7 +163,7 @@ class CollocationAlgo:
         candidates = []
         docn = None
         for tup in docids_texts:
-            if ("<DOCNO>" in tup[0]) and not(tup[1].strip() == ""):
+            if "<DOCNO>" in tup[0]:
                  docn = tup[1].strip() + " "
             else:
                 text = m_strip_tags.sub('', tup[3])
@@ -179,20 +205,32 @@ class CollocationAlgo:
         ne_type from datafile which is already tagged with named entities
         """
         doc = open(datafile, 'r').read()
-        p_n_words = "((?:(?:^|\s|DOCNO)+\S+){0," + str(n) + "}\s*)"
-        p_docno = "<DOCNO>((.|\n)*?)</DOCNO>"
-        p_colloc = p_n_words + "<" + ne_type + ">(.*?)</" + ne_type + ">" + p_n_words
+        p_nwords1 = "((?:(?:^|\s)+(?!<DOCNO> .+?\n|<" + ne_type + "\\> .+?)\S+){0," + str(n) + "}\s*)"
+        p_nwords2 = "(\s*(?:(?!<DOCNO> .+?\n|<" + ne_type + "> .+?)\S+(?:\s+|$)){0," + str(n) + "})"
+        p_docno = "<DOCNO>\n*(.+?)\n*</DOCNO>"
+        p_colloc = p_nwords1 + "<" + ne_type + ">(.+?)</" + ne_type + ">" + p_nwords2
 
         m_ne = re.compile("(" + p_docno + "|" + p_colloc + ")")
         results = m_ne.findall(doc)
         
-        m_strip_tags = re.compile(r'<.*?>')
+        m_strip_tags = re.compile(r'<.+?>')
         entities = {}
         for r in results:
-            if ("<DOCNO>" in r[0]) and not(r[1].strip() == ""):
-                 docid = r[1].strip()
+            if "<DOCNO>" in r[0]:
+                docid = r[1].strip()
             else:
-                colloc_words = r[2] + " " + r[4]
+                prev = r[2].strip()
+                post = r[4].strip()
+                if prev == "":
+                    m_ne_mini = re.compile(p_nwords1 + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + self.escape(r[4]))
+                    r_mini = m_ne_mini.findall(doc)
+                    prev = r_mini[0].strip()
+                if post == "":
+                    m_ne_mini = re.compile(self.escape(r[2]) + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + p_nwords2)
+                    r_mini = m_ne_mini.findall(doc)
+                    post = r_mini[0].strip()
+
+                colloc_words = prev + " " + post
                 ent = r[3]
                 if not entities.has_key(ent):
                     tup = (docid, m_strip_tags.sub('', colloc_words).strip())
@@ -272,12 +310,12 @@ class CollocationAlgo:
                 stripped.append(t)
         return stripped
 
-nea = CollocationAlgo()
+#nea = CollocationAlgo()
 #cands = nea.run_ne("Where is Belize located?", "LOCATION", "./train/ne_tagged/top_docs.202", 50)
 #print cands
 
 #cands = nea.run_colloc("Where is Belize located?", "/Users/jollifun/Downloads/train/top_docs.202.gz", 5)
 #print cands
 
-cands = nea.run_pos("When did the vesuvius last erupt?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.230.gz.pos", 10)
-print cands
+#cands = nea.run_pos("When did the vesuvius last erupt?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.230.gz.pos", 10)
+#print cands
