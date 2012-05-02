@@ -86,7 +86,7 @@ class CollocationAlgo:
         anssize = (self.answerSize-1)/2
         docid = None
         for r in results:
-            if "<DOCNO>" in r[0]:
+            if ("<DOCNO>" in r[0]) and not(r[1].strip() == ""):
                  docid = r[1].strip()
             else:
                 prev_words = self.strip_pos(r[2])
@@ -137,7 +137,7 @@ class CollocationAlgo:
         candidates = []
         docn = None
         for tup in docids_texts:
-            if "<DOCNO>" in tup[0]:
+            if ("<DOCNO>" in tup[0]) and not(tup[1].strip() == ""):
                  docn = tup[1].strip() + " "
             else:
                 text = m_strip_tags.sub('', tup[3])
@@ -179,7 +179,7 @@ class CollocationAlgo:
         ne_type from datafile which is already tagged with named entities
         """
         doc = open(datafile, 'r').read()
-        p_n_words = "((?:(?:^|\s)+\S+){0," + str(n) + "}\s*)"
+        p_n_words = "((?:(?:^|\s|DOCNO)+\S+){0," + str(n) + "}\s*)"
         p_docno = "<DOCNO>((.|\n)*?)</DOCNO>"
         p_colloc = p_n_words + "<" + ne_type + ">(.*?)</" + ne_type + ">" + p_n_words
 
@@ -189,7 +189,7 @@ class CollocationAlgo:
         m_strip_tags = re.compile(r'<.*?>')
         entities = {}
         for r in results:
-            if "<DOCNO>" in r[0]:
+            if ("<DOCNO>" in r[0]) and not(r[1].strip() == ""):
                  docid = r[1].strip()
             else:
                 colloc_words = r[2] + " " + r[4]
@@ -272,12 +272,12 @@ class CollocationAlgo:
                 stripped.append(t)
         return stripped
 
-nea = CollocNamedEntAlgo()
+nea = CollocationAlgo()
 #cands = nea.run_ne("Where is Belize located?", "LOCATION", "./train/ne_tagged/top_docs.202", 50)
 #print cands
 
 #cands = nea.run_colloc("Where is Belize located?", "/Users/jollifun/Downloads/train/top_docs.202.gz", 5)
 #print cands
 
-cands = nea.run_pos("How much folic acid should an expectant mother get daily?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.203.gz.pos", 10)
+cands = nea.run_pos("When did the vesuvius last erupt?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.230.gz.pos", 10)
 print cands
