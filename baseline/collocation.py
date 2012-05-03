@@ -30,7 +30,7 @@ class CollocationAlgo:
         self.answerSize = 10
         self.stopWords = utils.list2dict(corpus.stopwords.words('english'))
         self.stemmer = stem.LancasterStemmer()
-  
+
     def run_colloc(self, question, dfile, n):
         """
         params
@@ -47,7 +47,7 @@ class CollocationAlgo:
         top_n_anses = self.shrink_answer_size(top_n_cands, qdict, self.answerSize)
         return top_n_anses
 
-    def run_ne(self, question, ne_type, nefile, n):
+    def run_ne(self, question, ne_type, nefile, n, winsize=None):
         """
         param
         ----
@@ -59,18 +59,18 @@ class CollocationAlgo:
             returns a list of tuples in the following format:
                 (confidence score, string of docid + answer)
         """
-        print "start ne"
-        ents = self.get_colloc_words_ne(ne_type, nefile, self.windowSize)
-        print "start ne scoring"
+        if winsize == None:
+            winsize = self.windowSize
+        ents = self.get_colloc_words_ne(ne_type, nefile, winsize)
         return self.score_ents(ents, question, n)
 
-    def run_pos(self, question, pos, posfile, n):
+    def run_pos(self, question, pos, posfile, n, winsize=None):
         """
         Uses POS tag information to find the answer to a given question
         """
-        print "start pos"
-        ents = self.get_colloc_words_pos(pos, posfile, self.windowSize)
-        print "score pos"
+        if winsize == None:
+            winsize = self.windowSize
+        ents = self.get_colloc_words_pos(pos, posfile, winsize)
         return self.score_ents(ents, question, n)
 
 
