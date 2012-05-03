@@ -76,7 +76,7 @@ class CollocationAlgo:
 
     def get_colloc_words_pos(self, pos_type, posfile, nwords):
         postag = "<" + pos_type + ">"
-        return self.get_colloc_words_tag(postag, posfile, nwords, 2)
+        return self.get_colloc_words_tag(postag, posfile, nwords, 3)
 
     def get_colloc_words(self, datafile, numcands, qdict):
         """
@@ -161,7 +161,7 @@ class CollocationAlgo:
                        iadd = size
                    if "<DOCNO>" in ttoks[i+1:iadd]:
                        iadd = ttoks.index("<DOCNO>")
-                   ent = ent + " ".join(wtoks[i+1:iadd])
+                   ent = ent + " " + " ".join(wtoks[i+1:iadd])
                 iprev = i - n
                 if iprev < 0:
                     iprev = 0
@@ -202,7 +202,7 @@ class CollocationAlgo:
                 score = self.score_from_words(wtoks, qdict)
                 size = len(candidates)
                 ans = (score, docid + " " + ent)
-                if size > n:
+                if size >= n:
                     heapq.heappushpop(candidates, ans)
                 else:
                     heapq.heappush(candidates, ans)
