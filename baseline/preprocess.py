@@ -68,8 +68,9 @@ def tagger(infile, outfile):
             output = "\n".join("%s %s" % tup for tup in tagged_text)
             tagged_output = tagged_output + output + "\n"
         tagged_output = tagged_output + "\n"
-        
-    open(outfile, 'w').write(tagged_output)
+    
+    final_output = preprocess_postext(tagged_output)
+    open(outfile, 'w').write(final_output)
 
 def tag_file_by_num(file_num, outfile):
     """
@@ -153,6 +154,10 @@ def preprocess_nefiles(nedir, outdir):
 
 def preprocess_posfile(pfile, ofile):
     doc = open(pfile, 'r').read()
+    output = preprocess_postext(doc)
+    open(ofile, 'w').write(output)
+
+def preprocess_postext(doc):
     toks = doc.strip().split()
     wtoks = toks[::2]
     ptoks = toks[1::2]
@@ -173,7 +178,7 @@ def preprocess_posfile(pfile, ofile):
             ent = wtoks[i]
             pos = ptoks[i]
     output = output + ent + " <" + pos + ">\n"
-    open(ofile, 'w').write(output)
+    return output
 
 def preprocess_posfiles(indir, outdir):
     pp = dircache.listdir(indir)
