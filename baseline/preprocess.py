@@ -119,3 +119,66 @@ def tag_file_by_name(filename, outfile):
 
     preprocess(gzip_path + filename, outfile)
     return (gzip_path + filename, outfile, nerfile, file_num)
+
+def preprocess_nefile(nefile, outfile):
+    doc = open(nefile, 'r').read()
+    m_text = re.compile('(<DOCNO>((?:.|\n|\r)+?)</DOCNO>|<TEXT>((?:.|\r|\n)+?)</TEXT>)')
+    results = m_text.findall(doc)
+    m_ent = re.compile('((?:[^>])*)<(.+?)>((?:.|\n|\r)+?)</.+?>((?:[^<])*)')
+    output = ""
+    for r in results:
+        if "<DOCNO>" in r[0]:
+            docid = r[1].strip()
+            output = output + docid + " <DOCNO>\n"
+        else:
+            text = r[2]
+            sents = nltk.sent_tokenize(text)
+            for sent in sents:
+                results_ent = m_ent.findall(sent)
+                for (prev, ne, ent, post) in results_ent:
+                    if not prev.strip() == "":
+                        output = output + "\n".join("%s %s" % (w, "<NA>") for w in prev.strip().split()) + "\n"
+                    if not ent.strip() == "":
+                        output = output + "_".join(ent.strip().split()) + " <" +  ne + ">\n"
+                    if not post.strip() == "":
+                        output = output + "\n".join("%s %s" % (w, "<NA>") for w in post.strip().split()) + "\n"
+    open(outfile, 'w').write(output)
+
+def preprocess_nefiles(nedir, outdir):
+    pp = dircache.listdir(nedir)
+    regex = re.compile('[0-9]+')
+    for nefile in pp:
+        file_num = regex.search(nefile).group(0)
+        preprocess_nefile(nedir + nefile, outdir + "top_docs." + file_num + ".ne")
+
+def preprocess_posfile(pfile, ofile):
+    doc = open(pfile, 'r').read()
+    toks = doc.strip().split()
+    wtoks = toks[::2]
+    ptoks = toks[1::2]
+    size = len(wtoks)
+    output = ""
+    pos = None
+    ent = ""
+    for i in xrange(0,size):
+        if wtoks[i] == "<DOCNO>":
+            docid = ptoks[i]
+            output = output + docid + " <DOCNO>\n"
+        elif ptoks[i] == pos:
+            ent = ent + "_" + wtoks[i]
+            continue
+        else:
+            if not ent == "":
+                output = output + ent + " <" + pos + ">\n"
+            ent = wtoks[i]
+            pos = ptoks[i]
+    output = output + ent + " <" + pos + ">\n"
+    open(ofile, 'w').write(output)
+
+def preprocess_posfiles(indir, outdir):
+    pp = dircache.listdir(indir)
+    regex = re.compile('[0-9]+')
+    for f in pp:
+        file_num = regex.search(f).group(0)
+        preprocess_posfile(indir + f, outdir + "top_docs." + file_num + ".pos")
+
