@@ -78,69 +78,6 @@ class CollocationAlgo:
         postag = "<" + pos_type + ">"
         return self.get_colloc_words_tag(postag, posfile, nwords, 2)
 
-    def get_colloc_words_pos_old(self, qdict, pos_type, posfile, nwords, numcands):
-        """
-        Uses POS tags to find the answer to a given question and computes the
-        confidence score using the collocation method.
-        """
-        doc = open(posfile).read()
-        p_nwords1 = "((?:(?:^|\n)+(?!<DOCNO> .+?).+){0," + str(nwords) + "})"
-        p_nwords2 = "(\n*(?:(?!<DOCNO> .+?).+(?:\n+|$)){0," + str(nwords) + "})"
-        p_docno = "<DOCNO> (.+?)\n"
-        p_colloc = p_nwords1 + "\n(.+?) " + pos_type + p_nwords2
-        m_pos = re.compile("(" + p_docno + "|" + p_colloc +")")
-        results = m_pos.findall(doc)
-        
-        m_strip_tags = re.compile(r'<.+?>')
-        candidates = []
-        anssize = (self.answerSize-1)/2
-        docid = None
-        for r in results:
-            if "<DOCNO>" in r[0]:
-                docid = r[1].strip()
-            else:
-                prev = r[2].strip()
-                post = r[4].strip()
-                if prev == "":
-                    m_pos_mini = re.compile(p_nwords1 + "\n" + r[3] + " " + pos_type + re.escape(r[4]))
-                    r_mini = m_pos_mini.findall(doc)
-                    prev = r_mini[0].strip()
-                if post == "":
-                    m_pos_mini = re.compile(re.escape(r[2]) + "\n" + r[3] + " " + pos_type + p_nwords2)
-                    r_mini = m_pos_mini.findall(doc)
-                    post = r_mini[0].strip()
-
-                prev_words = self.strip_pos(prev)
-                post_words = self.strip_pos(post)
-                colloc_words = prev_words + " " + post_words
-                ans = self.extract_n_words(prev_words, anssize, False) + " " + r[3] + " " + self.extract_n_words(post_words, anssize, True)
-                wtoks = self.preprocess(colloc_words)
-                score = self.score_from_words(wtoks, qdict)
-                tup = (score, docid + " " + ans)
-                size = len(candidates)
-                if size > numcands:
-                    heapq.heappushpop(candidates, tup)
-                else:
-                    heapq.heappush(candidates, tup)
-
-        candidates.reverse()
-        return candidates
-
-    def strip_pos(self, string):
-        """
-        strip the given string of pos tags
-        """
-        wtoks = string.strip().split()
-        return " ".join(wtoks[::2])
-
-    def extract_n_words(self, string, n, from_front):
-        """
-        extract n words from either the front if from_front is true or the back if from_front is false.
-        """
-        wtoks = word_tokenize(string)
-        size = len(wtoks)
-        return " ".join(wtoks[size-n:])
-
     def get_colloc_words(self, datafile, numcands, qdict):
         """
         params
