@@ -43,8 +43,8 @@ def run_file(file_num, n, qa):
     n = number of answers desired
     qa = question type mapping
     """
-    posfile = tag_file_by_num(file_num, "top_docs."+str(file_num)+".pos")
-    ans = best_guess(n, posfile, file_num, qa[str(file_num)])
+    (posfile, gzip_file, ner_file) = tag_file_by_num(file_num, "top_docs."+str(file_num)+".pos")
+    ans = best_guess(n, ner_file, posfile, gzip_file, file_num, qa[str(file_num)])
     return ans
 
 def run_dir(indirpath, outdirpath, answerfile, n):
@@ -63,11 +63,14 @@ def run_dir(indirpath, outdirpath, answerfile, n):
     dic = qa.get_qtypes(questions_dir)
     infiles = dircache.listdir(indirpath)
     ans = ""
+    count = 201
     for infile in infiles:
         if ".gz" in infile:
+            print count
+            count += 1
             outpath = outdirpath+infile+".pos"
-            (posfile, qn) = tag_file_by_name(infile, outpath)
-            ans += best_guess(n, posfile, qn, dic[str(qn)]) + "\n\n"
+            (gzfile, posfile, ner_file, qn) = tag_file_by_name(infile, outpath)
+            ans += best_guess(n, ner_file, posfile, gzfile, qn, dic[str(qn)]) + "\n\n"
     output(answerfile, ans)
 
 def output(outfile, ans):
@@ -81,4 +84,4 @@ def output(outfile, ans):
     """
     open(outfile, 'w').write(ans)
 
-run_dir("train/docs/", "train/docs_proc/", "train/results/test.txt", 5)
+run_dir("train/docs/", "train/docs_proc/", "train/results/test_relaxed_ner.txt", 5)
