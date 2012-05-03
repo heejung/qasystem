@@ -1,6 +1,7 @@
 import re, heapq
 from nltk import stem, corpus, sent_tokenize, word_tokenize
-import preprocess, utils
+import utils
+from preprocess import get_gzip_data
 
 """
 Class CollocationAlgo 
@@ -58,18 +59,26 @@ class CollocationAlgo:
             returns a list of tuples in the following format:
                 (confidence score, string of docid + answer)
         """
+        print "start ne"
         ents = self.get_colloc_words_ne(ne_type, nefile, self.windowSize)
+        print "start ne scoring"
         return self.score_ents(ents, question, n)
 
     def run_pos(self, question, pos, posfile, n):
         """
         Uses POS tag information to find the answer to a given question
         """
-        qtoks = self.preprocess(question)
-        qdict = utils.list2dict(qtoks)
-        return self.get_colloc_words_pos(qdict, pos, posfile, self.windowSize, n)
+        print "start pos"
+        ents = self.get_colloc_words_pos(pos, posfile, self.windowSize)
+        print "score pos"
+        return self.score_ents(ents, question, n)
 
-    def get_colloc_words_pos(self, qdict, pos_type, posfile, nwords, numcands):
+
+    def get_colloc_words_pos(self, pos_type, posfile, nwords):
+        postag = "<" + pos_type + ">"
+        return self.get_colloc_words_tag(postag, posfile, nwords, 2)
+
+    def get_colloc_words_pos_old(self, qdict, pos_type, posfile, nwords, numcands):
         """
         Uses POS tags to find the answer to a given question and computes the
         confidence score using the collocation method.
@@ -93,15 +102,13 @@ class CollocationAlgo:
                 prev = r[2].strip()
                 post = r[4].strip()
                 if prev == "":
-                    m_pos_mini = re.compile(p_nwords1 + "\n" + r[3] + " " + pos_type + self.escape(r[4]))
+                    m_pos_mini = re.compile(p_nwords1 + "\n" + r[3] + " " + pos_type + re.escape(r[4]))
                     r_mini = m_pos_mini.findall(doc)
-                    if len(r_mini) > 0:
-                        prev = r_mini[0].strip()
+                    prev = r_mini[0].strip()
                 if post == "":
-                    m_pos_mini = re.compile(self.escape(r[2]) + "\n" + r[3] + " " + pos_type + p_nwords2)
+                    m_pos_mini = re.compile(re.escape(r[2]) + "\n" + r[3] + " " + pos_type + p_nwords2)
                     r_mini = m_pos_mini.findall(doc)
-                    if len(r_mini) > 0:
-                        post = r_mini[0].strip()
+                    post = r_mini[0].strip()
 
                 prev_words = self.strip_pos(prev)
                 post_words = self.strip_pos(post)
@@ -118,20 +125,6 @@ class CollocationAlgo:
 
         candidates.reverse()
         return candidates
-
-    def escape(self, string):
-        toks = string.split('\n')
-        escs = []
-        for t in toks:
-            stoks = t.split(' ')
-            ss = []
-            for s in stoks:
-                if s in [')', '(']:
-                    ss.append(re.escape(s))
-                else:
-                    ss.append(s)
-            escs.append(" ".join(ss))
-        return "\n".join(escs)
 
     def strip_pos(self, string):
         """
@@ -158,8 +151,8 @@ class CollocationAlgo:
         returns a list of tuples (string of "docid answer",
                                   float of confidence score)
         """
-        doc = preprocess.get_gzip_data(datafile)
-        p_text = re.compile('(<DOCNO>((.|\n)*?)</DOCNO>|<TEXT>((.|\n)*?)</TEXT>)') 
+        doc = get_gzip_data(datafile)
+        p_text = re.compile('(<DOCNO>((.|\n|\r)*?)</DOCNO>|<TEXT>((.|\r|\n)*?)</TEXT>)') 
         m_strip_tags = re.compile(r'<.*?>')
         docids_texts = p_text.findall(doc)
         candidates = []
@@ -201,44 +194,50 @@ class CollocationAlgo:
         shrinkeds.reverse()
         return shrinkeds
 
-    def get_colloc_words_ne(self, ne_type, datafile, n):
+    def get_colloc_words_ne(self, ne_type, nefile, n):
         """
         returns a list of n words containing the named entity type
-        ne_type from datafile which is already tagged with named entities
+        ne_type from nefile which is already tagged with named entities
+        and processed to have a tuple of a word and an NE tag per line
+        in the document file.
         """
-        doc = open(datafile, 'r').read()
-        p_nwords1 = "((?:(?:^|\s)+(?!<DOCNO> .+?\n|<" + ne_type + "\\> .+?)\S+){0," + str(n) + "}\s*)"
-        p_nwords2 = "(\s*(?:(?!<DOCNO> .+?\n|<" + ne_type + "> .+?)\S+(?:\s+|$)){0," + str(n) + "})"
-        p_docno = "<DOCNO>\n*(.+?)\n*</DOCNO>"
-        p_colloc = p_nwords1 + "<" + ne_type + ">(.+?)</" + ne_type + ">" + p_nwords2
+        netag = "<" + ne_type + ">"
+        return self.get_colloc_words_tag(netag, nefile, n, 0)
 
-        m_ne = re.compile("(" + p_docno + "|" + p_colloc + ")")
-        results = m_ne.findall(doc)
-        
-        m_strip_tags = re.compile(r'<.+?>')
+    def get_colloc_words_tag(self, tag, dfile, n, add):
+        doc = open(dfile, 'r').read()
+        toks = doc.strip().split()
+        wtoks = toks[::2]
+        ttoks = toks[1::2]
+        size = len(wtoks)
         entities = {}
-        for r in results:
-            if "<DOCNO>" in r[0]:
-                docid = r[1].strip()
-            else:
-                prev = r[2].strip()
-                post = r[4].strip()
-                if prev == "":
-                    m_ne_mini = re.compile(p_nwords1 + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + self.escape(r[4]))
-                    r_mini = m_ne_mini.findall(doc)
-                    if len(r_mini) > 0:
-                        prev = r_mini[0].strip()
-                if post == "":
-                    m_ne_mini = re.compile(self.escape(r[2]) + "<" + ne_type + ">" + r[3] + "</" + ne_type + ">" + p_nwords2)
-                    r_mini = m_ne_mini.findall(doc)
-                    if len(r_mini) > 0:
-                        post = r_mini[0].strip()
-
-                colloc_words = prev + " " + post
-                ent = r[3]
-                if not entities.has_key(ent):
-                    tup = (docid, m_strip_tags.sub('', colloc_words).strip())
-                    entities[ent] = tup
+        docidx = 0
+        for i in xrange(0,size):
+            if ttoks[i] == "<DOCNO>":
+                docid = wtoks[i]
+                docidx = i
+            elif ttoks[i] == tag:
+                ent = " ".join(wtoks[i].split('_'))
+                if add > 0:
+                   iadd = i+add
+                   if iadd >= size:
+                       iadd = size
+                   if "<DOCNO>" in ttoks[i+1:iadd]:
+                       iadd = ttoks.index("<DOCNO>")
+                   ent = ent + " ".join(wtoks[i+1:iadd])
+                iprev = i - n
+                if iprev < 0:
+                    iprev = 0
+                if iprev <= docidx:
+                    iprev = docidx + 1
+                ipost = i + n
+                if ipost >= size:
+                    ipost = size
+                if "<DOCNO>" in ttoks[i+1:ipost]:
+                    ipost = ttoks.index("<DOCNO>")
+                prev = " ".join(wtoks[iprev:i])
+                post = " ".join(wtoks[i+1:ipost])
+                entities[ent] = (docid, prev + " " + post)
 
         return entities
 
@@ -264,10 +263,14 @@ class CollocationAlgo:
             if not (ent in question):
                 wtoks = self.preprocess(colloc_words)
                 score = self.score_from_words(wtoks, qdict)
-                candidates.append((score, docid + " " + ent))
-        candidates.sort()
+                size = len(candidates)
+                ans = (score, docid + " " + ent)
+                if size > n:
+                    heapq.heappushpop(candidates, ans)
+                else:
+                    heapq.heappush(candidates, ans)
         candidates.reverse()
-        return candidates[0:n]
+        return candidates
 
     def preprocess(self, string):
         """
@@ -315,11 +318,11 @@ class CollocationAlgo:
         return stripped
 
 #nea = CollocationAlgo()
-#cands = nea.run_ne("Where is Belize located?", "LOCATION", "./train/ne_tagged/top_docs.202", 50)
+#cands = nea.run_ne("Where is Belize located?", "LOCATION", "train/ne_final/top_docs.202.ne", 5)
 #print cands
 
 #cands = nea.run_colloc("Where is Belize located?", "/Users/jollifun/Downloads/train/top_docs.202.gz", 5)
 #print cands
 
-#cands = nea.run_pos("When did the vesuvius last erupt?", "CD", "/Users/jollifun/NLP/pro4/posdocs2/top_docs.230.gz.pos", 10)
+#cands = nea.run_pos("When did the vesuvius last erupt?", "CD", "train/pos_final/top_docs.230.pos", 10)
 #print cands
