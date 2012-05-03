@@ -5,6 +5,7 @@ import dircache
 
 gzip_path = "train/docs/"
 pp_path = "train/docs_proc/"
+ner_path = "train/ner/"
 
 def preprocess(infile, outfile):
     """
@@ -83,16 +84,17 @@ def tag_file_by_num(file_num, outfile):
     outfile: output file name
 
     """
+    ner_file = ner_path + "top_docs." + str(file_num)
     pp = dircache.listdir(pp_path)
     for pp_file in pp:
         if str(file_num) in pp_file:
-            return (pp_path + pp_file)
+            return (pp_path + pp_file, gzip_path+"top_docs."+str(file_num)+".gz", ner_file)
 
     gzips = dircache.listdir(gzip_path)
     for gzip in gzips:
         if str(file_num) in gzip:
             preprocess(gzip_path + gzip, pp_path + outfile)
-            return (pp_path + outfile)
+            return (pp_path + outfile, gzip_path + gzip, ner_file)
 
 def tag_file_by_name(filename, outfile):
     """
@@ -109,10 +111,11 @@ def tag_file_by_name(filename, outfile):
     """
     regex = re.compile('[0-9]+')
     file_num = int(regex.search(filename).group(0))
+    nerfile = ner_path + "top_docs." + str(file_num)
     pp = dircache.listdir(pp_path)
     for pp_file in pp:
         if str(file_num) in pp_file:
-            return (pp_path+pp_file, file_num)
+            return (gzip_path + filename, pp_path+pp_file, nerfile, file_num)
 
     preprocess(gzip_path + filename, outfile)
-    return (outfile, file_num)
+    return (gzip_path + filename, outfile, nerfile, file_num)
